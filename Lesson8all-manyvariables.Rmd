@@ -1,0 +1,147 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+setwd("~/career_da-pffs/udacity-eda/eda-course-materials/lesson6")
+
+
+```{r}
+install.packages(ggplot2)
+install.packages("reshape")
+install.packages("tidyr")
+install.packages("dplyr")
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+
+```{r}
+gdURL <- "http://www.stat.ubc.ca/~jenny/notOcto/STAT545A/examples/gapminder/data/gapminderDataFiveYear.txt"
+gDat <- read.delim(file = gdURL)
+gDat <- droplevels(subset(gDat, continent != "Oceania"))
+library(ggplot2)
+library(plyr)
+# http://rpubs.com/neil_spencer/stat545a-2013-hw05_spencer-nei
+```
+
+
+```{r}
+str(gDat)
+```
+
+```{r}
+#summary(gDat)
+
+cor.test(gDat$lifeExp, gDat$gdpPercap, method = 'pearson') 
+```
+Observation - a strong positive correlation.
+
+
+summary(gDat$lifeExp)
+  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  23.60   48.08   60.34   59.26   70.75   82.60 
+
+
+
+1. A scatter plot of GDPPercap vs LifeExp
+```{r}
+ggplot(aes(x = lifeExp, y = gdpPercap, color = continent), data = gDat) + 
+  geom_point() +
+  ggtitle("GdpPercap vs. LifeExp") +
+  labs(x="lifeExp", y="gdpPercap") +
+  scale_x_continuous(breaks = seq(20,90,4)) 
+```
+Observation - A few outliers - a country with almost 0 gdpPercap and some with extremely high GDP
+Most countries with a gdp below 15000.  To reduce overploting with alpha and coordinate transormation 
+
+min(gDat$gdpPercap)
+
+```{r}
+ggplot(aes(x = lifeExp, y = gdpPercap, color = continent), data = gDat) + 
+  geom_point(alpha = 1/2) +
+  ggtitle("GdpPercap vs. LifeExp") +
+  labs(x="lifeExp", y="gdpPercap") +
+  scale_x_continuous(breaks = seq(20,90,4)) + 
+  coord_trans(x="sqrt", y='sqrt')
+```
+# Omiting the top 1% of values by applying the quartile method
+
+
+```{r - Omiting the top 1%}
+ggplot(aes(x = lifeExp, y = gdpPercap, color = continent),
+       data = gDat) + 
+  geom_point(alpha = 1/2) +
+  ggtitle("GdpPercap vs. LifeExp") +
+  labs(x="lifeExp", y="gdpPercap") +
+  scale_x_continuous(breaks = seq(20,90,4)) + 
+  coord_trans(x="sqrt", y='sqrt') + 
+   xlim(20, quantile(gDat$lifeExp, 0.99)) +
+  ylim(0, quantile(gDat$gdpPercap, 0.99)) +
+  geom_smooth(method="lm", color="red")
+```
+Geom-smooth omits most of the values therefore does not seem the proper choice for this data
+
+
+Making the plot more readable by creating and using conditoning summaries.  
+Error below - I do not understand it??
+
+```{r}
+gDat_by_country<- gDat %>% 
+                group_by(country) %>%
+                summarise(lifeExp_mean=mean(lifeExp),
+                lifeExp_median=median(lifeExp),
+                 n=n()) %>%
+                arrange(country)
+          head(gDat_by_country)
+```
+
+
+
+```{r Plotting Conditional Summaries}
+
+ggplot(aes(x = continent, y = lifeExp),
+       data = subset(gDat, !is.na(continent))) + 
+  geom_boxplot() +
+  stat_summary(geom = 'point', shape = 4, fun.y = mean)
+
+```
+
+```{r}
+ggplot(aes(x = continent, y = gdpPercap, color = continent),
+       data = subset(gDat, !is.na(continent))) + 
+  geom_boxplot() +
+  stat_summary(geom = 'point', shape = 4, fun.y = median) +
+  scale_y_continuous(limits = c(0, 30000),breaks=seq(0, 30000, 1000))
+  
+```
+
+
+
+Write code to create a new data frame - why??
+
+```{r}
+
+year_lifeExp_group <- group_by(gDat, year, lifeExp) %>% 
+                filter(!is.na(year)) %>% 
+                summarise(mean_gdpPercap = mean(gdpPercap),
+                          median_gdpPercap = median(gdpPercap),
+                          n = n())
+ungroup() %>%
+arrange(gDat_year_lifeExp_group, year)
+```
+```
+why?
+
+
+
+
+
+
+
+
+
+

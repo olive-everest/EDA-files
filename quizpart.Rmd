@@ -1,0 +1,380 @@
+---
+title: "R Notebook"
+output: html_notebook
+example - https://github.com/GoldbergData/Lesson-8-Problem-Set-Explore-Many-Variables/blob/master/Problem_Set_Explore_Many_Variables.md
+---
+
+setwd("~/career_da-pffs/udacity-eda/eda-course-materials/lesson6")
+
+```{r install the packages}
+
+install.packages(ggplot2)
+install.packages('reshape')
+install.packages('plyr')
+install.packages('GGally')
+```
+
+
+```{r}
+install.packages('read.xlsx')
+library(readxl)
+```
+
+
+```{r load the packages and data}
+library(ggplot2)
+library(reshape)
+library(dplyr)
+library(GGally)
+
+data(diamonds)
+```
+
+
+```{r - get familiar with the data}
+str(diamonds)
+names(diamonds)
+
+```
+
+```{r}
+ggcorr(diamonds, palette = "RdBu", label = TRUE)
+```
+
+
+Quiz 1 - Price Histograms with Facet and Color
+
+# Create a histogram of diamond prices.
+# Facet the histogram by diamond color
+# and use cut to color the histogram bars.
+
+# The plot should look something like this.
+# http://i.imgur.com/b5xyrOu.jpg
+
+# Note: In the link, a color palette of type
+# 'qual' was used to color the histogram using
+# scale_fill_brewer(type = 'qual')
+
+```{r}
+ggplot(aes(x = log10(price), fill = cut), data = diamonds) + 
+  geom_histogram(binwidth = 0.1) +
+  scale_fill_brewer(type = 'qual') + 
+   facet_wrap( ~ color)
+ggsave('pricehistogram.png')
+```
+labs(x = 'Price', y = 'Frequency',
+       title = 'Price of Diamonds by Color and Cut') +
+
+Quiz 2 - Price vs. Table Colored by Cut
+# Create a scatterplot of diamond price vs.
+# table and color the points by the cut of
+# the diamond.
+
+# The plot should look something like this.
+# http://i.imgur.com/rQF9jQr.jpg
+
+# Note: In the link, a color palette of type
+# 'qual' was used to color the scatterplot using
+# scale_color_brewer(type = 'qual')
+
+```{r}
+ggplot(aes(x = table, y = price), data = diamonds) + 
+geom_point(aes(color = cut)) + 
+   labs(x = 'Price', y = 'Frequency',
+       title = 'Price of Diamonds by Color and Cut') +
+  scale_color_brewer(type = 'qual') + 
+  scale_x_continuous(breaks = seq(50, 80, 2))
+
+#http://i.imgur.com/rQF9jQr.jpg
+```
+What is the typical table range for the majority of diamonds of ideal cut? 53-57. What is the typical table range for the majority of diamonds of premium cut? 58-62.
+
+Quiz 3 - Price vs. Volume and Diamond Clarity
+
+# Create a scatterplot of diamond price vs.
+# volume (x * y * z) and color the points by
+# the clarity of diamonds. Use scale on the y-axis
+# to take the log10 of price. You should also
+# omit the top 1% of diamond volumes from the plot.
+
+# Note: Volume is a very rough approximation of
+# a diamond's actual volume.
+
+# The plot should look something like this.
+# http://i.imgur.com/excUpea.jpg
+
+# Note: In the link, a color palette of type
+# 'div' was used to color the scatterplot using
+# scale_color_brewer(type = 'div')
+
+```{r}
+volume <- diamonds$x*diamonds$y*diamonds$z
+
+ggplot(data = diamonds, aes(x = volume, y = price)) + 
+  geom_point(aes(colour = clarity)) + 
+  scale_y_log10() + 
+  coord_cartesian(xlim=c(0,quantile(volume, 0.99))) +
+  scale_color_brewer(type = 'div')
+```
+
+Quiz 5 - Proportion of Friendships Initiated
+# Many interesting variables are derived from two or more others.
+# For example, we might wonder how much of a person's network on
+# a service like Facebook the user actively initiated. Two users
+# with the same degree (or number of friends) might be very
+# different if one initiated most of those connections on the
+# service, while the other initiated very few. So it could be
+# useful to consider this proportion of existing friendships that
+# the user initiated. This might be a good predictor of how active
+# a user is compared with their peers, or other traits, such as
+# personality (i.e., is this person an extrovert?).
+
+# Your task is to create a new variable called 'prop_initiated'
+# in the Pseudo-Facebook data set. The variable should contain
+# the proportion of friendships that the user initiated.
+
+```{r}
+library(readr)
+pf <- read_tsv('pseudo_facebook.tsv')
+
+```
+
+```{r}
+pf$prop_initiated <- pf$friendships_initiated / pf$friend_count
+```
+
+Quiz 6 - prop_initiated vs. tenure
+
+# Create a line graph of the median proportion of
+# friendships initiated ('prop_initiated') vs.
+# tenure and color the line segment by
+# year_joined.bucket.
+
+# Recall, we created year_joined.bucket in Lesson 5
+# by first creating year_joined from the variable tenure.
+# Then, we used the cut function on year_joined to create
+# four bins or cohorts of users.
+
+# (2004, 2009]
+# (2009, 2011]
+# (2011, 2012]
+# (2012, 2014]
+
+# The plot should look something like this.
+# http://i.imgur.com/vNjPtDh.jpg
+# OR this
+# http://i.imgur.com/IBN1ufQ.jpg
+
+?floor() = rounding of numbers
+
+NOTE: You may need to filter out missing data from your dataframe before you are able to create your plot.
+
+***
+pf <- read.csv('pseudo_facebook.tsv', sep = '\t')
+pf$prop_initiated = pf$friendships_initiated / pf$friend_count
+pf$prop_initiated[is.nan(pf$prop_initiated)] <- 0    ???
+
+
+```{r}
+pf$year_joined <- floor(2014 - (pf$tenure / 365))
+
+pf$year_joined.bucket <- cut(pf$year_joined, breaks =
+                             c(2004, 2009, 2011, 2012, 2014))
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(aes(x = tenure, y = prop_initiated), data = pf) + 
+  labs(x = 'Tenure', 
+       y = 'Median Proportion of Friends Initiated',
+       title = 'Proportion Initiated vs. Tenure') + geom_line(aes(color = year_joined.bucket), stat = 'summary', 
+            fun.y = median) + 
+  scale_color_brewer('Year Joined', palette = 'Set2')
+
+```
+
+Quiz 7 - Smoothing prop_initiated vs. tenure
+
+# Smooth the last plot you created of
+# of prop_initiated vs tenure colored by
+# year_joined.bucket. You can bin together ranges
+# of tenure or add a smoother to the plot.
+
+# There won't be a solution image for this exercise.
+# You will answer some questions about your plot in
+# the next two exercises.
+
+```{r}
+ggplot(aes(x = tenure, y = prop_initiated), data = pf) + 
+  labs(x = 'Tenure', 
+       y = 'Median Proportion of Friends Initiated',
+       title = 'Proportion Initiated vs. Tenure') + geom_line(aes(color = year_joined.bucket), stat = 'summary', 
+            fun.y = median) + 
+  geom_smooth() +
+  scale_color_brewer('Year Joined', palette = 'Set2')
+```
+On average, the group  that initiated the greastest proportion of  Facebook friendship is that of after 2012.- see image
+
+For the group with the largest proportion of friendships initiated, what is the group's average (mean) proportion of friendships initiated? The mean is 0.6653892
+```{r}
+by(pf$prop_initiated, pf$year_joined.bucket, summary)
+```
+
+
+Why do you think this group's proportion of friendships initiated is higher than others? They have been around for a shorter period of time. This relationship holds true for the most part across cohorts. As buckets of facebook users tenure increases, friendships initiated declines.
+
+Quiz 10 - Price/Carat Binned, Faceted, & Colored
+# Create a scatter plot of the price/carat ratio
+# of diamonds. The variable x should be
+# assigned to cut. The points should be colored
+# by diamond color, and the plot should be
+# faceted by clarity.
+
+# The plot should look something like this.
+# http://i.imgur.com/YzbWkHT.jpg.
+
+# Note: In the link, a color palette of type
+# 'div' was used to color the histogram using
+# scale_color_brewer(type = 'div')
+
+```{r}
+ggplot(aes(x = cut, y = price/carat),
+       data = diamonds) +
+  labs(x = 'Cut', y = 'Price/Carat Ratio',
+       title = 'Price/Carat Vs Cut') +
+  geom_point(aes(color = color), position = 'jitter',
+             alpha = 0.5) +
+  scale_color_brewer(type = 'div') +
+  facet_wrap( ~ clarity)
+```
+
+Quiz 11 - Gapminder Multivariate Analysis
+
+# The Gapminder website contains over 500 data sets with information about
+# the world's population. Your task is to continue the investigation you did at the
+# end of Problem Set 4 or you can start fresh and choose a different
+# data set from Gapminder.
+
+# If you’re feeling adventurous or want to try some data munging see if you can
+# find a data set or scrape one from the web.
+
+# In your investigation, examine 3 or more variables and create 2-5 plots that make
+# use of the techniques from Lesson 5.
+
+# You can find a link to the Gapminder website in the Instructor Notes.
+
+# Once you've completed your investigation, create a post in the discussions that includes:
+#       1. the variable(s) you investigated, your observations, and any summary statistics
+#       2. snippets of code that created the plots
+#       3. links to the images of your plots
+
+
+# read in the data
+```{r}
+fertility <- read.csv('children_per_woman_total_fertility.csv')
+population <- read.csv('total_population_with_projections.csv')
+co2 <- read.csv('co2_emissions_tonnes_per_person.csv')
+```
+
+### Data cleaning issues:
+
+### Data cleaning issues:
+drop tje empty colmns
+1. gather the years and cases to one column each
+2. remove missing incomplete cases
+3. correct Column names
+
+
+```{r}
+install.packages(ggplot2)
+install.packages("reshape")
+install.packages("tidyr")
+install.packages("dplyr")
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+```{r exploring co2 data}
+str(co2)
+
+is.numeric(co2$year[0,2:216])
+
+
+```
+
+
+```{r}
+gdURL <- "http://www.stat.ubc.ca/~jenny/notOcto/STAT545A/examples/gapminder/data/gapminderDataFiveYear.txt"
+gDat <- read.delim(file = gdURL)
+gDat <- droplevels(subset(gDat, continent != "Oceania"))
+library(ggplot2)
+library(plyr)
+# http://rpubs.com/neil_spencer/stat545a-2013-hw05_spencer-nei
+```
+
+
+```{r}
+str(gDat)
+```
+
+```{r}
+summary(gDat)
+```
+Plotting Conditional Summaries
+
+```{r Plotting Conditional Summaries}
+
+ggplot(aes(x = continent, y = lifeExp),
+       data = subset(gDat, !is.na(continent))) + 
+  geom_boxplot() +
+  stat_summary(geom = 'point', shape = 4, fun.y = mean)
+ggsave('boxplot_lifeExp.png')
+```
+
+```{r}
+ggplot(aes(x = continent, y = lifeExp),
+       data = subset(gDat, !is.na(continent))) + 
+  geom_boxplot() +
+  stat_summary(geom = 'point', shape = 4, fun.y = median)
+```
+Write code to create a new data frame - w
+
+```{r}
+
+year_cont_group <- group_by(gDat, continent, year)
+year_cont_group <- filter(year_cont_group, !is.na(year))
+gDat_year_cont_group <- summarise(year_cont_group,
+                                 mean_gdpPercap = mean(gdpPercap),
+                                 median_gdpPercap = median(gdpPercap),
+                                 n = n())
+ungroup() %>%
+arrange(gDat_year_cont_group, year)
+```
+```
+why?
+
+```{r}
+
+
+year_country_group <- group_by(gDat, country, year)
+year_country_group <- filter(year_country_group, !is.na(year))
+gDat_year_country_group <- summarise(year_country_group,
+                                 mean_gdpPercap = mean(gdpPercap),
+                                 median_gdpPercap = median(gdpPercap),
+                                 n = n())
+arrange(gDat_year_country_group, year)
+```
+
+
+
+
+
+
+
+
+
+
+
