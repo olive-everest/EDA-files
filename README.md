@@ -1,3 +1,3 @@
 # EDA-files
-Data visualisation
-EDA notes for quick reference
+Exploratory Data Analytics using R
+Explore and learn from Data
